@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QScreen>
 #include "gui.hpp"
+#include "usb_port.hpp"
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);

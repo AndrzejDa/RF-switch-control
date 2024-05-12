@@ -12,7 +12,7 @@ if(CMAKE_VERSION VERSION_LESS "3.7.0")
     set(CMAKE_INCLUDE_CURRENT_DIR ON)
 endif()
 
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Widgets REQUIRED SerialPort)
 
 include_directories(inc)
 
@@ -23,4 +23,4 @@ file(GLOB SOURCES "src/*.cpp")
 set(CMAKE_BUILD_TYPE Debug)
 add_executable(RFswitchController ${SOURCES} ${HEADER_FILES})
 
-target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
+target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::SerialPort)
