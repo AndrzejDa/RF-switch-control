@@ -4,7 +4,7 @@
 MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent){
     screen_width = 640;
     screen_height = 320;
-    is_connected = false;
+    is_usb_connected = false;
     setGeometry(int((screen->size().width()-screen_width)/2), int((screen->size().height()-screen_height)/2), screen_width, screen_height);
     setWindowTitle("RF Switch Controller :>");
     setFixedSize(size());
@@ -27,6 +27,13 @@ MainWindow::~MainWindow() {
     delete rf2_button;
     delete rf3_button;
     delete rf4_button;
+    if(uhd_thread.isRunning()){
+        uhd_thread.wait();
+    }
+}
+
+std::vector<char*> MainWindow::get_uhd_input_args(){
+    return uhd_input_args;
 }
 
 void MainWindow::config_widgets(){
@@ -88,6 +95,9 @@ void MainWindow::button_clicked() {
     if (id == "rf1") {
         qDebug() << "rf1";
         usb_device.write_data("1");
+        if(!uhd_thread.isRunning()){
+            uhd_thread.start();
+        }
     } else if (id == "rf2") {
         qDebug() << "rf2";
         usb_device.write_data("2");
@@ -102,12 +112,12 @@ void MainWindow::button_clicked() {
         available_ports = usb_device.list_devices();
         get_ports(available_ports);
     } else if (id == "connect") {
-        if(!is_connected){            
+        if(!is_usb_connected){            
             for(const auto &port : available_ports){
                 if(port.description() == devices->currentText()){
                     if(port.vendorIdentifier() == VENDOR_ID_PASS){
                         usb_device.open_port(port.portName());
-                        is_connected = true;
+                        is_usb_connected = true;
                         reload_button->setEnabled(false);
                         rf1_button->setEnabled(true);
                         rf2_button->setEnabled(true);
@@ -121,7 +131,7 @@ void MainWindow::button_clicked() {
                 }
             }
         }else{
-            is_connected = false;
+            is_usb_connected = false;
             usb_device.close_port();
             connect_button->setText("Connect");
             reload_button->setEnabled(true);
