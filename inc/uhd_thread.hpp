@@ -9,9 +9,9 @@
 class UHDThread : public QThread{
 public:
     void run() override;
-    void set_input_args(std::vector<char*>& args);
+    void set_input_args(std::string args);
 private:
-    std::vector<char*> input_args;
+    std::string input_args;
 };
 
 

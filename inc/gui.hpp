@@ -5,6 +5,9 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QComboBox>
+#include <QCheckBox>
+#include <QLineEdit>
+#include <QLabel>
 #include <QScreen>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,7 +21,7 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QScreen *screen, QWidget *parent = nullptr);
     ~MainWindow();
-    std::vector<char*> get_uhd_input_args();
+    std::string get_settings();
 private:
     QPushButton *connect_button;
     QPushButton *reload_button;
@@ -28,6 +31,41 @@ private:
     QPushButton *rf3_button;
     QPushButton *rf4_button;
 
+    QLabel *file_arg;
+    QLineEdit *file_name;
+    QLabel *type_arg;
+    QComboBox *type_options;
+    QLabel *nsamps_arg;
+    QLineEdit *nsamps_val;
+    QLabel *duration_arg;
+    QLineEdit *duration_val;
+    QLabel *spb_arg;
+    QLineEdit *spb_val;
+    QLabel *rate_arg;
+    QLineEdit *rate_val;
+    QLabel *freq_arg;
+    QLineEdit *freq_val;
+    QLabel *lo_offset_arg;
+    QLineEdit *lo_offset_val;
+    QLabel *gain_arg;
+    QLineEdit *gain_val;
+    QLabel *channel_arg;
+    QComboBox *channel_options;
+    QLabel *bw_arg;
+    QLineEdit *bw_val;
+    QLabel *ref_arg;
+    QComboBox *ref_options;
+    QLabel *wirefmt_arg;
+    QComboBox *wirefmt_options;
+    QLabel *setup_arg;
+    QLineEdit *setup_val;
+    QLabel *continue_arg;
+    QCheckBox *continue_state;
+    QLabel *skip_lo_arg;
+    QCheckBox *skip_lo_state;
+
+    QPushButton *run_button;
+
     USBPort usb_device;
     UHDThread uhd_thread;
 
@@ -35,7 +73,7 @@ private:
     int screen_height;
     bool is_usb_connected;
     //bool UHD_feateures;
-    std::map<char*, char*> uhd_settings;
+    std::map<QLabel*, QObject*> uhd_settings;
     std::vector<char*> uhd_input_args;
     QList<QSerialPortInfo> available_ports;
 
