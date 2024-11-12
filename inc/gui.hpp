@@ -16,6 +16,10 @@
 #include "usb_port.hpp"
 #include "uhd_thread.hpp"
 
+//#define RX_SAMPLES_TO_FILE
+#define MIN_WINDOW_HEIGHT 350
+#define MIN_WINDOW_WIDTH 640
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -23,6 +27,8 @@ public:
     ~MainWindow();
     std::string get_settings();
 private:
+    QScreen *screen_ptr;
+
     QPushButton *connect_button;
     QPushButton *reload_button;
     QComboBox *devices;
@@ -49,6 +55,8 @@ private:
     QLineEdit *lo_offset_val;
     QLabel *gain_arg;
     QLineEdit *gain_val;
+    QLabel *ant_arg;
+    QComboBox *ant_options;
     QLabel *channel_arg;
     QComboBox *channel_options;
     QLabel *bw_arg;
@@ -63,14 +71,16 @@ private:
     QCheckBox *continue_state;
     QLabel *skip_lo_arg;
     QCheckBox *skip_lo_state;
+    QLabel *additional_args;
+    QLineEdit *args_val;
 
     QPushButton *run_button;
 
     USBPort usb_device;
     UHDThread uhd_thread;
 
-    int screen_width;
-    int screen_height;
+    int window_width;
+    int window_height;
     bool is_usb_connected;
     //bool UHD_feateures;
     std::map<QLabel*, QObject*> uhd_settings;

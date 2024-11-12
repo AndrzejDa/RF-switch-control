@@ -1,7 +1,7 @@
 #include "uhd_thread.hpp"
 
 void UHDThread::run(){
-    qDebug() << "elo pa to" << input_args.c_str();
+    qDebug() << input_args.c_str();
     system(input_args.c_str());
 }
 

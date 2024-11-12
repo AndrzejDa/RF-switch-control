@@ -1,13 +1,15 @@
 
 #include "gui.hpp"
 
-MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent){
-    screen_width = 640;
-    screen_height = 750;
+MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent), screen_ptr(screen){
     is_usb_connected = false;
-    setGeometry(int((screen->size().width()-screen_width)/2), int((screen->size().height()-screen_height)/2), screen_width, screen_height);
-    setWindowTitle("RF Switch Controller :>");
-    setFixedSize(size());
+    window_height = MIN_WINDOW_HEIGHT;
+    window_width = MIN_WINDOW_WIDTH;
+    //setMinimumHeight(MIN_WINDOW_HEIGHT);
+    //setMinimumWidth(MIN_WINDOW_WIDTH);
+    setWindowTitle("RF Switch Controller");
+    setGeometry(int((screen_ptr->size().width()-window_width)/2), int((screen_ptr->size().height()-window_height)/2), window_width, window_height);
+    //setFixedSize(size());
     
     connect_button = new QPushButton("Connect", this);
     reload_button = new QPushButton("reload", this);
@@ -17,80 +19,94 @@ MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent){
     rf3_button = new QPushButton("RF_3", this);
     rf4_button = new QPushButton("RF_4", this);
 
-    file_arg = new QLabel("file");
-    file_name = new QLineEdit;
-    file_name->setText("usrp_samples.dat");
-    uhd_settings[file_arg] = file_name;
-    type_arg = new QLabel("type");
-    type_options = new QComboBox;
-    type_options->addItem("short");
-    type_options->addItem("double");
-    type_options->addItem("float");
-    type_options->setCurrentIndex(0);
-    uhd_settings[type_arg] = type_options;
-    nsamps_arg = new QLabel("nsamps");
-    nsamps_val = new QLineEdit;
-    nsamps_val->setText("0");
-    uhd_settings[nsamps_arg] = nsamps_val;
-    duration_arg = new QLabel("duration");
-    duration_val = new QLineEdit;
-    duration_val->setText("0");
-    uhd_settings[duration_arg] = duration_val;
-    spb_arg = new QLabel("spb");
-    spb_val = new QLineEdit;
-    spb_val->setText("10000");
-    uhd_settings[spb_arg] = spb_val;
-    rate_arg = new QLabel("rate");
-    rate_val = new QLineEdit;
-    rate_val->setText("1e6");
-    uhd_settings[rate_arg] = rate_val;
-    freq_arg = new QLabel("freq");
-    freq_val = new QLineEdit;
-    freq_val->setText("0.0");
-    uhd_settings[freq_arg] = freq_val;
-    lo_offset_arg = new QLabel("lo-offset");
-    lo_offset_val = new QLineEdit;
-    lo_offset_val->setText("0.0");
-    uhd_settings[lo_offset_arg] = lo_offset_val;
-    gain_arg = new QLabel("gain");
-    gain_val = new QLineEdit;
-    uhd_settings[gain_arg] = gain_val;
-    channel_arg = new QLabel("channel");
-    channel_options = new QComboBox;
-    channel_options->addItem("0");
-    channel_options->addItem("1");
-    channel_options->addItem("0,1");
-    channel_options->setCurrentIndex(0);
-    uhd_settings[channel_arg] = channel_options;
-    bw_arg = new QLabel("bw");
-    bw_val = new QLineEdit;
-    uhd_settings[bw_arg] = bw_val;
-    ref_arg = new QLabel("ref");
-    ref_options = new QComboBox;
-    ref_options->addItem("");
-    ref_options->addItem("internal");
-    ref_options->addItem("external");
-    ref_options->addItem("mimo");
-    ref_options->setCurrentIndex(0);
-    uhd_settings[ref_arg] = ref_options;
-    wirefmt_arg = new QLabel("wirefmt");
-    wirefmt_options = new QComboBox;
-    wirefmt_options->addItem("sc8");
-    wirefmt_options->addItem("sc16");
-    wirefmt_options->addItem("s16");
-    wirefmt_options->setCurrentIndex(1);
-    uhd_settings[wirefmt_arg] = wirefmt_options;
-    setup_arg = new QLabel("setup");
-    setup_val = new QLineEdit;
-    setup_val->setText("1.0");
-    uhd_settings[setup_arg] = setup_val;
-    continue_arg = new QLabel("continue");
-    continue_state = new QCheckBox;
-    uhd_settings[continue_arg] = continue_state;
-    skip_lo_arg = new QLabel("skip-lo");
-    skip_lo_state = new QCheckBox;
-    uhd_settings[skip_lo_arg] = skip_lo_state;
-    run_button = new QPushButton("Run");
+    #ifdef RX_SAMPLES_TO_FILE
+        file_arg = new QLabel("file");
+        file_name = new QLineEdit;
+        file_name->setText("usrp_samples.dat");
+        uhd_settings[file_arg] = file_name;
+        type_arg = new QLabel("type");
+        type_options = new QComboBox;
+        type_options->addItem("short");
+        type_options->addItem("double");
+        type_options->addItem("float");
+        type_options->setCurrentIndex(0);
+        uhd_settings[type_arg] = type_options;
+        nsamps_arg = new QLabel("nsamps");
+        nsamps_val = new QLineEdit;
+        nsamps_val->setText("0");
+        uhd_settings[nsamps_arg] = nsamps_val;
+        duration_arg = new QLabel("duration");
+        duration_val = new QLineEdit;
+        duration_val->setText("0");
+        uhd_settings[duration_arg] = duration_val;
+        spb_arg = new QLabel("spb");
+        spb_val = new QLineEdit;
+        spb_val->setText("10000");
+        uhd_settings[spb_arg] = spb_val;
+        rate_arg = new QLabel("rate");
+        rate_val = new QLineEdit;
+        rate_val->setText("1e6");
+        uhd_settings[rate_arg] = rate_val;
+        freq_arg = new QLabel("freq");
+        freq_val = new QLineEdit;
+        freq_val->setText("0.0");
+        uhd_settings[freq_arg] = freq_val;
+        lo_offset_arg = new QLabel("lo-offset");
+        lo_offset_val = new QLineEdit;
+        lo_offset_val->setText("0.0");
+        uhd_settings[lo_offset_arg] = lo_offset_val;
+        gain_arg = new QLabel("gain");
+        gain_val = new QLineEdit;
+        uhd_settings[gain_arg] = gain_val;
+        ant_arg = new QLabel("ant");
+        ant_options = new QComboBox;
+        ant_options->addItem("");
+        ant_options->addItem("TX/RX");
+        ant_options->addItem("RX2");
+        ant_options->setCurrentIndex(0);
+        uhd_settings[ant_arg] = ant_options;
+        channel_arg = new QLabel("channel");
+        channel_options = new QComboBox;
+        channel_options->addItem("0");
+        channel_options->addItem("1");
+        channel_options->addItem("0,1");
+        channel_options->setCurrentIndex(0);
+        uhd_settings[channel_arg] = channel_options;
+        bw_arg = new QLabel("bw");
+        bw_val = new QLineEdit;
+        uhd_settings[bw_arg] = bw_val;
+        ref_arg = new QLabel("ref");
+        ref_options = new QComboBox;
+        ref_options->addItem("");
+        ref_options->addItem("internal");
+        ref_options->addItem("external");
+        ref_options->addItem("mimo");
+        ref_options->setCurrentIndex(0);
+        uhd_settings[ref_arg] = ref_options;
+        wirefmt_arg = new QLabel("wirefmt");
+        wirefmt_options = new QComboBox;
+        wirefmt_options->addItem("sc8");
+        wirefmt_options->addItem("sc16");
+        wirefmt_options->addItem("s16");
+        wirefmt_options->setCurrentIndex(1);
+        uhd_settings[wirefmt_arg] = wirefmt_options;
+        setup_arg = new QLabel("setup");
+        setup_val = new QLineEdit;
+        setup_val->setText("1.0");
+        uhd_settings[setup_arg] = setup_val;
+        continue_arg = new QLabel("continue");
+        continue_state = new QCheckBox;
+        uhd_settings[continue_arg] = continue_state;
+        skip_lo_arg = new QLabel("skip-lo");
+        skip_lo_state = new QCheckBox;
+        uhd_settings[skip_lo_arg] = skip_lo_state;
+        additional_args = new QLabel("args");
+        args_val = new QLineEdit;
+        //args_val->setText("xd");
+        uhd_settings[additional_args] = args_val;
+        run_button = new QPushButton("Run");
+        
+    #endif
     config_widgets();
 }
 
@@ -176,8 +192,7 @@ void MainWindow::config_widgets(){
     rf4_button->setEnabled(false);
     connect(rf4_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
 
-    run_button->setObjectName("run");
-    connect(run_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    
 
     middle_layout->addWidget(rf1_button);
     middle_layout->addWidget(rf2_button);
@@ -186,81 +201,98 @@ void MainWindow::config_widgets(){
     merged_layout->addLayout(top_layout);
     merged_layout->addLayout(middle_layout);
 
-    QVBoxLayout *settings_layout = new QVBoxLayout();
-    settings_layout->setContentsMargins(20,20,20,20);
-    QHBoxLayout *setting_row_1 = new QHBoxLayout();
-    setting_row_1->addWidget(file_arg,1);
-    setting_row_1->addWidget(file_name,1);
-    settings_layout->addLayout(setting_row_1);
-    QHBoxLayout *setting_row_2 = new QHBoxLayout();
-    setting_row_2->addWidget(type_arg,1);
-    setting_row_2->addWidget(type_options,1);
-    settings_layout->addLayout(setting_row_2);
-    QHBoxLayout *setting_row_3 = new QHBoxLayout();
-    setting_row_3->addWidget(nsamps_arg,1);
-    setting_row_3->addWidget(nsamps_val,1);
-    settings_layout->addLayout(setting_row_3);
-    QHBoxLayout *setting_row_4 = new QHBoxLayout();
-    setting_row_4->addWidget(duration_arg,1);
-    setting_row_4->addWidget(duration_val,1);
-    settings_layout->addLayout(setting_row_4);
-    QHBoxLayout *setting_row_5 = new QHBoxLayout();
-    setting_row_5->addWidget(spb_arg,1);
-    setting_row_5->addWidget(spb_val,1);
-    settings_layout->addLayout(setting_row_5);
-    QHBoxLayout *setting_row_6 = new QHBoxLayout();
-    setting_row_6->addWidget(rate_arg,1);
-    setting_row_6->addWidget(rate_val,1);
-    settings_layout->addLayout(setting_row_6);
-    QHBoxLayout *setting_row_7 = new QHBoxLayout();
-    setting_row_7->addWidget(freq_arg,1);
-    setting_row_7->addWidget(freq_val,1);
-    settings_layout->addLayout(setting_row_7);
-    QHBoxLayout *setting_row_8 = new QHBoxLayout();
-    setting_row_8->addWidget(lo_offset_arg,1);
-    setting_row_8->addWidget(lo_offset_val,1);
-    settings_layout->addLayout(setting_row_8);
-    QHBoxLayout *setting_row_9 = new QHBoxLayout();
-    setting_row_9->addWidget(gain_arg,1);
-    setting_row_9->addWidget(gain_val,1);
-    settings_layout->addLayout(setting_row_9);
-    QHBoxLayout *setting_row_10 = new QHBoxLayout();
-    setting_row_10->addWidget(channel_arg,1);
-    setting_row_10->addWidget(channel_options,1);
-    settings_layout->addLayout(setting_row_10);
-    QHBoxLayout *setting_row_11 = new QHBoxLayout();
-    setting_row_11->addWidget(bw_arg,1);
-    setting_row_11->addWidget(bw_val,1);
-    settings_layout->addLayout(setting_row_11);
-    QHBoxLayout *setting_row_12 = new QHBoxLayout();
-    setting_row_12->addWidget(ref_arg,1);
-    setting_row_12->addWidget(ref_options,1);
-    settings_layout->addLayout(setting_row_12);
-    QHBoxLayout *setting_row_13 = new QHBoxLayout();
-    setting_row_13->addWidget(wirefmt_arg,1);
-    setting_row_13->addWidget(wirefmt_options,1);
-    settings_layout->addLayout(setting_row_13);
-    QHBoxLayout *setting_row_14 = new QHBoxLayout();
-    setting_row_14->addWidget(setup_arg,1);
-    setting_row_14->addWidget(setup_val,1);
-    settings_layout->addLayout(setting_row_14);
-    QHBoxLayout *setting_row_15 = new QHBoxLayout();
-    setting_row_15->addWidget(continue_arg,1);
-    setting_row_15->addWidget(continue_state,1);
-    settings_layout->addLayout(setting_row_15);
-    QHBoxLayout *setting_row_16 = new QHBoxLayout();
-    setting_row_16->addWidget(skip_lo_arg,1);
-    setting_row_16->addWidget(skip_lo_state,1);
-    settings_layout->addLayout(setting_row_16);
+    #ifdef RX_SAMPLES_TO_FILE
+        run_button->setObjectName("run");
+        connect(run_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
 
-    merged_layout->addLayout(settings_layout);
-    merged_layout->addWidget(run_button);
+        QVBoxLayout *settings_layout = new QVBoxLayout();
+        settings_layout->setContentsMargins(20,20,20,20);
+        QHBoxLayout *setting_row_1 = new QHBoxLayout();
+        setting_row_1->addWidget(file_arg,1);
+        setting_row_1->addWidget(file_name,1);
+        settings_layout->addLayout(setting_row_1);
+        QHBoxLayout *setting_row_2 = new QHBoxLayout();
+        setting_row_2->addWidget(type_arg,1);
+        setting_row_2->addWidget(type_options,1);
+        settings_layout->addLayout(setting_row_2);
+        QHBoxLayout *setting_row_3 = new QHBoxLayout();
+        setting_row_3->addWidget(nsamps_arg,1);
+        setting_row_3->addWidget(nsamps_val,1);
+        settings_layout->addLayout(setting_row_3);
+        QHBoxLayout *setting_row_4 = new QHBoxLayout();
+        setting_row_4->addWidget(duration_arg,1);
+        setting_row_4->addWidget(duration_val,1);
+        settings_layout->addLayout(setting_row_4);
+        QHBoxLayout *setting_row_5 = new QHBoxLayout();
+        setting_row_5->addWidget(spb_arg,1);
+        setting_row_5->addWidget(spb_val,1);
+        settings_layout->addLayout(setting_row_5);
+        QHBoxLayout *setting_row_6 = new QHBoxLayout();
+        setting_row_6->addWidget(rate_arg,1);
+        setting_row_6->addWidget(rate_val,1);
+        settings_layout->addLayout(setting_row_6);
+        QHBoxLayout *setting_row_7 = new QHBoxLayout();
+        setting_row_7->addWidget(freq_arg,1);
+        setting_row_7->addWidget(freq_val,1);
+        settings_layout->addLayout(setting_row_7);
+        QHBoxLayout *setting_row_8 = new QHBoxLayout();
+        setting_row_8->addWidget(lo_offset_arg,1);
+        setting_row_8->addWidget(lo_offset_val,1);
+        settings_layout->addLayout(setting_row_8);
+        QHBoxLayout *setting_row_9 = new QHBoxLayout();
+        setting_row_9->addWidget(gain_arg,1);
+        setting_row_9->addWidget(gain_val,1);
+        settings_layout->addLayout(setting_row_9);
+        QHBoxLayout *setting_row_10 = new QHBoxLayout();
+        setting_row_10->addWidget(ant_arg,1);
+        setting_row_10->addWidget(ant_options,1);
+        settings_layout->addLayout(setting_row_10);
+        QHBoxLayout *setting_row_11 = new QHBoxLayout();
+        setting_row_11->addWidget(channel_arg,1);
+        setting_row_11->addWidget(channel_options,1);
+        settings_layout->addLayout(setting_row_11);
+        QHBoxLayout *setting_row_12 = new QHBoxLayout();
+        setting_row_12->addWidget(bw_arg,1);
+        setting_row_12->addWidget(bw_val,1);
+        settings_layout->addLayout(setting_row_12);
+        QHBoxLayout *setting_row_13 = new QHBoxLayout();
+        setting_row_13->addWidget(ref_arg,1);
+        setting_row_13->addWidget(ref_options,1);
+        settings_layout->addLayout(setting_row_13);
+        QHBoxLayout *setting_row_14 = new QHBoxLayout();
+        setting_row_14->addWidget(wirefmt_arg,1);
+        setting_row_14->addWidget(wirefmt_options,1);
+        settings_layout->addLayout(setting_row_14);
+        QHBoxLayout *setting_row_15 = new QHBoxLayout();
+        setting_row_15->addWidget(setup_arg,1);
+        setting_row_15->addWidget(setup_val,1);
+        settings_layout->addLayout(setting_row_15);
+        QHBoxLayout *setting_row_16 = new QHBoxLayout();
+        setting_row_16->addWidget(continue_arg,1);
+        setting_row_16->addWidget(continue_state,1);
+        settings_layout->addLayout(setting_row_16);
+        QHBoxLayout *setting_row_17 = new QHBoxLayout();
+        setting_row_17->addWidget(skip_lo_arg,1);
+        setting_row_17->addWidget(skip_lo_state,1);
+        settings_layout->addLayout(setting_row_17);
+        QHBoxLayout *setting_row_18 = new QHBoxLayout();
+        setting_row_18->addWidget(additional_args,1);
+        setting_row_18->addWidget(args_val,1);
+        settings_layout->addLayout(setting_row_18);
+        merged_layout->addLayout(settings_layout);
+        merged_layout->addWidget(run_button);
+    #endif
 
-    
-
+    //merged_layout->setSizeConstraint(QLayout::SetMinimumSize);
     QWidget *widget = new QWidget();
     widget->setLayout(merged_layout);
+    //widget->adjustSize();
     setCentralWidget(widget);
+    QSize current_window_size = this->size();
+    window_width = current_window_size.width();
+    window_height = current_window_size.height();
+    setGeometry(int((screen_ptr->size().width()-window_width)/2), int((screen_ptr->size().height()-window_height)/2 - 100), window_width, window_height);
+
 }
 
 void MainWindow::button_clicked() {
@@ -312,11 +344,14 @@ void MainWindow::button_clicked() {
             devices->setDisabled(false);
         }
     } else if (id == "run") {
-        get_ports(available_ports);
-        if(!uhd_thread.isRunning()){
-            uhd_thread.set_input_args(get_settings());
-            uhd_thread.start();
-        }
+
+        #ifdef RX_SAMPLES_TO_FILE
+            get_ports(available_ports);
+            if(!uhd_thread.isRunning()){
+                uhd_thread.set_input_args(get_settings());
+                uhd_thread.start();
+            }
+        #endif
     }
 }
 
