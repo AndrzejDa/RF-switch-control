@@ -3,6 +3,8 @@
 
 MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent), screen_ptr(screen){
     is_usb_connected = false;
+    is_auto_switch_mode_selected = false;
+    is_sending_data = false;
     window_height = MIN_WINDOW_HEIGHT;
     window_width = MIN_WINDOW_WIDTH;
     //setMinimumHeight(MIN_WINDOW_HEIGHT);
@@ -11,9 +13,16 @@ MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent), 
     setGeometry(int((screen_ptr->size().width()-window_width)/2), int((screen_ptr->size().height()-window_height)/2), window_width, window_height);
     //setFixedSize(size());
     
+    timer = new QTimer(this);
     connect_button = new QPushButton("Connect", this);
-    reload_button = new QPushButton("reload", this);
+    refresh_button = new QPushButton("refresh", this);
     devices = new QComboBox(this);
+    mode_choice = new QLabel("Auto switch ports mode");
+    auto_switch_mode_state = new QCheckBox;
+    switching_time = new QLineEdit;
+    unit = new QLabel("[ms]");
+    auto_switch_start_button = new QPushButton("Start", this);
+    auto_switch_stop_button = new QPushButton("Stop", this);
     rf1_button = new QPushButton("RF_1", this);
     rf2_button = new QPushButton("RF_2", this);
     rf3_button = new QPushButton("RF_3", this);
@@ -112,7 +121,7 @@ MainWindow::MainWindow(QScreen *screen, QWidget *parent) : QMainWindow(parent), 
 
 MainWindow::~MainWindow() {
     delete connect_button;
-    delete reload_button;
+    delete refresh_button;
     delete devices;
     delete rf1_button;
     delete rf2_button;
@@ -148,6 +157,7 @@ std::string MainWindow::get_settings(){
             }
         }
     }
+    qDebug() << converted_arg.c_str();
     return converted_arg;
 }
 
@@ -159,39 +169,69 @@ void MainWindow::config_widgets(){
     connect_button->setObjectName("connect");
     connect(connect_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
 
-    reload_button->setFixedSize(70, 40);
-    reload_button->setObjectName("reload");
-    connect(reload_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    refresh_button->setFixedSize(70, 40);
+    refresh_button->setObjectName("refresh");
+    connect(refresh_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
 
     available_ports = usb_device.list_devices();
     get_ports(available_ports);
 
     top_layout->addWidget(connect_button);
     top_layout->addWidget(devices);
-    top_layout->addWidget(reload_button);
+    top_layout->addWidget(refresh_button);
+
+    QHBoxLayout *mode_layout = new QHBoxLayout();
+    QHBoxLayout *mode_row = new QHBoxLayout();
+    
+    mode_row->addWidget(mode_choice,1);
+
+    mode_row->addWidget(auto_switch_mode_state,1);
+    auto_switch_mode_state->setObjectName("auto_switch_mode");
+    auto_switch_mode_state->setEnabled(true);
+    connect(auto_switch_mode_state, &QCheckBox::stateChanged, this, &MainWindow::checkbox_marked);
+    
+    mode_row->addWidget(switching_time,1);
+    switching_time->setEnabled(false);
+
+    mode_row->addWidget(unit,1);
+
+    mode_row->addWidget(auto_switch_start_button,1);
+    auto_switch_start_button->setEnabled(false);
+    auto_switch_start_button->setObjectName("auto_switch_start");
+    connect(auto_switch_start_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+
+    mode_row->addWidget(auto_switch_stop_button,1);
+    auto_switch_stop_button->setEnabled(false);
+    auto_switch_stop_button->setObjectName("auto_switch_stop");
+    connect(auto_switch_stop_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+
+    mode_layout->addLayout(mode_row);
 
     QHBoxLayout *middle_layout = new QHBoxLayout();
 
     rf1_button->setFixedHeight(60);
     rf1_button->setObjectName("rf1");
-    rf1_button->setEnabled(false);
-    connect(rf1_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    rf1_button->setCheckable(true);
+    connect(rf1_button, &QPushButton::clicked, this, &MainWindow::button_toggled);
 
     rf2_button->setFixedHeight(60);
     rf2_button->setObjectName("rf2");
-    rf2_button->setEnabled(false);
-    connect(rf2_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    rf2_button->setCheckable(true);
+    connect(rf2_button, &QPushButton::clicked, this, &MainWindow::button_toggled);
 
     rf3_button->setFixedHeight(60);
     rf3_button->setObjectName("rf3");
-    rf3_button->setEnabled(false);
-    connect(rf3_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    rf3_button->setCheckable(true);
+    connect(rf3_button, &QPushButton::clicked, this, &MainWindow::button_toggled);
 
     rf4_button->setFixedHeight(60);
     rf4_button->setObjectName("rf4");
-    rf4_button->setEnabled(false);
-    connect(rf4_button, &QPushButton::clicked, this, &MainWindow::button_clicked);
+    rf4_button->setCheckable(true);
+    connect(rf4_button, &QPushButton::clicked, this, &MainWindow::button_toggled);
 
+    set_enabled_rf_buttons(false);
+
+    connect(timer, &QTimer::timeout, this, &MainWindow::write_multi_data);
     
 
     middle_layout->addWidget(rf1_button);
@@ -199,6 +239,7 @@ void MainWindow::config_widgets(){
     middle_layout->addWidget(rf3_button);
     middle_layout->addWidget(rf4_button);
     merged_layout->addLayout(top_layout);
+    merged_layout->addLayout(mode_layout);
     merged_layout->addLayout(middle_layout);
 
     #ifdef RX_SAMPLES_TO_FILE
@@ -298,34 +339,21 @@ void MainWindow::config_widgets(){
 void MainWindow::button_clicked() {
     QPushButton *senderButton = qobject_cast<QPushButton*>(sender());
     QString id = senderButton->objectName();
-    if (id == "rf1") {
-        qDebug() << "rf1";
-        usb_device.write_data("1");
-    } else if (id == "rf2") {
-        qDebug() << "rf2";
-        usb_device.write_data("2");
-    } else if (id == "rf3") {
-        qDebug() << "rf3";
-        usb_device.write_data("3");
-    } else if (id == "rf4") {
-        qDebug() << "rf4";
-        usb_device.write_data("4");
-    } else if (id == "reload") {
-        qDebug() << "reload";
-        available_ports = usb_device.list_devices();        
+    if (id == "refresh") {
+        qDebug() << "refresh";
+        available_ports = usb_device.list_devices(); 
+        get_ports(available_ports);       
     } else if (id == "connect") {
         if(!is_usb_connected){            
             for(const auto &port : available_ports){
                 if(port.description() == devices->currentText()){
                     if(port.vendorIdentifier() == VENDOR_ID_PASS){
-                        usb_device.open_port(port.portName());
+                        usb_port_name = port.portName();
+                        usb_device.open_port(usb_port_name);
                         is_usb_connected = true;
-                        reload_button->setEnabled(false);
-                        rf1_button->setEnabled(true);
-                        rf2_button->setEnabled(true);
-                        rf3_button->setEnabled(true);
-                        rf4_button->setEnabled(true);
-                        devices->setDisabled(true);
+                        refresh_button->setEnabled(false);                                                
+                        set_enabled_rf_buttons(true);
+                        devices->setDisabled(true);                        
                         connect_button->setText("Disconnect");
                     }else{
                         qDebug() << "Wrong Vendor ID";
@@ -334,14 +362,44 @@ void MainWindow::button_clicked() {
             }
         }else{
             is_usb_connected = false;
-            usb_device.close_port();
+            usb_device.close_port();            
             connect_button->setText("Connect");
-            reload_button->setEnabled(true);
-            rf1_button->setEnabled(false);
-            rf2_button->setEnabled(false);
-            rf3_button->setEnabled(false);
-            rf4_button->setEnabled(false);
+            refresh_button->setEnabled(true);
+            auto_switch_start_button->setEnabled(false);
+            auto_switch_stop_button->setEnabled(false);
+            set_enabled_rf_buttons(false);
+            uncheck_rf_buttons();
+            is_sending_data = false;
+            if(timer->isActive()){
+                timer->stop();
+                qDebug() << "Stopped sending data";
+            }
             devices->setDisabled(false);
+        }
+    } else if (id == "auto_switch_start"){
+        if(!switching_time->text().isEmpty() && !is_sending_data){
+            
+            final_auto_switch_ports_data.clear();
+            for(const auto &item: tmp_auto_switch_ports_data){
+                if(item != "0") final_auto_switch_ports_data.push_back(item);
+            }
+            qDebug() << (final_auto_switch_ports_data.size()!=0);
+            if(final_auto_switch_ports_data.size() != 0){
+                set_enabled_rf_buttons(false);
+                auto_switch_interval = switching_time->text().toInt();
+                timer->setInterval(auto_switch_interval);
+                is_sending_data = true;
+                timer->start();
+                qDebug() << "Started sending data";
+            }
+            
+        }
+    } else if (id == "auto_switch_stop"){
+        if(is_sending_data){
+            set_enabled_rf_buttons(true);
+            is_sending_data = false;
+            timer->stop();
+            qDebug() << "Stopped sending data";
         }
     } else if (id == "run") {
 
@@ -355,10 +413,121 @@ void MainWindow::button_clicked() {
     }
 }
 
+void MainWindow::checkbox_marked(int state){
+    QCheckBox *senderCheckbox = qobject_cast<QCheckBox *>(sender());
+    QString id = senderCheckbox->objectName();
+    if (id == "auto_switch_mode"){
+        if(state == Qt::Checked){
+            is_auto_switch_mode_selected = true;
+            switching_time->setEnabled(true); 
+            auto_switch_start_button->setEnabled(true);
+            auto_switch_stop_button->setEnabled(true);         
+            tmp_auto_switch_ports_data = {"0", "0", "0", "0"};
+        } else {
+            is_auto_switch_mode_selected = false;
+            switching_time->setEnabled(false);
+            auto_switch_start_button->setEnabled(false);
+            auto_switch_stop_button->setEnabled(false);
+        }
+        uncheck_rf_buttons();
+    }
+}
+
+void MainWindow::button_toggled(bool checked){
+    QPushButton *senderButton = qobject_cast<QPushButton*>(sender());
+    QString id = senderButton->objectName();
+    if (id == "rf1") {
+        if(checked){
+            if (!is_auto_switch_mode_selected){
+                qDebug() << "rf1";
+                usb_device.write_data("1");
+                rf2_button->setChecked(false);
+                rf3_button->setChecked(false);
+                rf4_button->setChecked(false);          
+            } else{
+                tmp_auto_switch_ports_data[0] = "1";
+            }
+        } else {
+            if (is_auto_switch_mode_selected) tmp_auto_switch_ports_data[0] = "0";
+        }        
+    } else if (id == "rf2") {
+        if(checked){
+            if (!is_auto_switch_mode_selected){
+                qDebug() << "rf2";
+                usb_device.write_data("2"); 
+                rf1_button->setChecked(false);
+                rf3_button->setChecked(false);
+                rf4_button->setChecked(false);         
+            } else{
+                tmp_auto_switch_ports_data[1] = "2";
+            }
+        } else {
+            if (is_auto_switch_mode_selected) tmp_auto_switch_ports_data[1] = "0";
+        }
+    } else if (id == "rf3") {
+        if(checked){
+            if (!is_auto_switch_mode_selected){
+                qDebug() << "rf3";
+                usb_device.write_data("3"); 
+                rf1_button->setChecked(false);
+                rf2_button->setChecked(false);
+                rf4_button->setChecked(false);        
+            } else{
+                tmp_auto_switch_ports_data[2] = "3";
+            }
+        } else {
+            if (is_auto_switch_mode_selected) tmp_auto_switch_ports_data[2] = "0";
+        }
+    } else if (id == "rf4") {
+        if(checked){
+            if (!is_auto_switch_mode_selected){
+                qDebug() << "rf4";
+                usb_device.write_data("4"); 
+                rf1_button->setChecked(false);
+                rf2_button->setChecked(false);
+                rf3_button->setChecked(false);          
+            } else{
+                tmp_auto_switch_ports_data[3] = "4";
+            }
+        } else {
+            if (is_auto_switch_mode_selected) tmp_auto_switch_ports_data[3] = "0";
+        }
+    }
+}
+
 void MainWindow::get_ports(QList<QSerialPortInfo> available_ports){
     devices->clear();
     for(const auto &port : available_ports){
         devices->addItem(port.description());
     }
     devices->setCurrentIndex(0);
+}
+
+void MainWindow::uncheck_rf_buttons(){
+    rf1_button->setChecked(false);
+    rf2_button->setChecked(false);
+    rf3_button->setChecked(false);
+    rf4_button->setChecked(false);
+}
+
+void MainWindow::set_enabled_rf_buttons(bool state){
+    rf1_button->setEnabled(state);
+    rf2_button->setEnabled(state);
+    rf3_button->setEnabled(state);
+    rf4_button->setEnabled(state);
+}
+
+void MainWindow::write_multi_data(){
+    static int index = 0;
+    if (usb_device.isOpen()){
+        usb_device.write_data(final_auto_switch_ports_data[index]);
+    } else {
+        qDebug() << "Not opened yet";
+    }
+    if (index < final_auto_switch_ports_data.size()-1){
+        index ++;
+    } else {
+        index = 0;
+    }
+
 }

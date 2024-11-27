@@ -15,8 +15,10 @@
 #include <unistd.h>
 #include "usb_port.hpp"
 #include "uhd_thread.hpp"
+#include <QString>
+#include <QTimer>
 
-//#define RX_SAMPLES_TO_FILE
+#define RX_SAMPLES_TO_FILE    //switch GUI mode
 #define MIN_WINDOW_HEIGHT 350
 #define MIN_WINDOW_WIDTH 640
 
@@ -30,8 +32,16 @@ private:
     QScreen *screen_ptr;
 
     QPushButton *connect_button;
-    QPushButton *reload_button;
+    QPushButton *refresh_button;
     QComboBox *devices;
+
+    QLabel *mode_choice;
+    QCheckBox *auto_switch_mode_state;
+    QLineEdit *switching_time;
+    QLabel *unit;
+    QPushButton *auto_switch_start_button;
+    QPushButton *auto_switch_stop_button;
+
     QPushButton *rf1_button;
     QPushButton *rf2_button;
     QPushButton *rf3_button;
@@ -76,20 +86,32 @@ private:
 
     QPushButton *run_button;
 
+    QTimer *timer;
     USBPort usb_device;
     UHDThread uhd_thread;
 
     int window_width;
     int window_height;
     bool is_usb_connected;
+    bool is_auto_switch_mode_selected;
+    bool is_sending_data;
     //bool UHD_feateures;
     std::map<QLabel*, QObject*> uhd_settings;
     std::vector<char*> uhd_input_args;
     QList<QSerialPortInfo> available_ports;
+    std::vector<QByteArray> tmp_auto_switch_ports_data;
+    std::vector<QByteArray> final_auto_switch_ports_data;
+    QString usb_port_name;
+    int auto_switch_interval;
 
     void config_widgets();
     void button_clicked();
+    void checkbox_marked(int);
+    void button_toggled(bool);
+    void uncheck_rf_buttons();
+    void set_enabled_rf_buttons(bool);
     void get_ports(QList<QSerialPortInfo> available_ports);
+    void write_multi_data();
 };
 
 #endif

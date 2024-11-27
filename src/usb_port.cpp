@@ -48,9 +48,14 @@ void USBPort::close_port(){
 
 void USBPort::write_data(const QByteArray &data){
     if(serial_port.isOpen()){
-        serial_port.write(data);
+        qint64 state = serial_port.write(data);
+        //qDebug() << state << "debug wysylania";
     }else{
         qDebug() << "Cannot send data";
     }
+}
+
+bool USBPort::isOpen(){
+    return serial_port.isOpen();
 }
 

@@ -1,5 +1,5 @@
-#ifndef CUSTOM_THREADS_HPP
-#define CUSTOM_THREADS_HPP
+#ifndef UHD_THREAD_HPP
+#define UHD_THREAD_HPP
 
 #include <QApplication>
 #include <QScreen>

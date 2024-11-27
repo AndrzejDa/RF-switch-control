@@ -15,6 +15,7 @@ public:
     void open_port(const QString &portName);
     void close_port();
     void write_data(const QByteArray &data);
+    bool isOpen();
 private:    
     QSerialPort serial_port;
     void config_port();
